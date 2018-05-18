@@ -39,6 +39,7 @@ class FileResourceServer {
     }
 
     private func getFilePath(for resource: String) -> String? {
+        var candidatePath: String? = nil
         let fileManager = FileManager.default
         var potentialResource = getResourcePathBasedOnSourceLocation(for: resource)
 
@@ -48,10 +49,31 @@ class FileResourceServer {
 
         let fileExists = fileManager.fileExists(atPath: potentialResource)
         if fileExists {
-            return potentialResource
+            candidatePath = potentialResource
         } else {
-            return getResourcePathBasedOnCurrentDirectory(for: resource, withFileManager: fileManager)
+            candidatePath = getResourcePathBasedOnCurrentDirectory(for: resource, withFileManager: fileManager)
         }
+        // We need to ensure we are only serving kitura resources so need to decode the file path and then check it has Sources/Kitura/resources before the last element
+        guard isValidPath(candidatePath) else {
+            return nil
+        }
+        return candidatePath
+    }
+
+    func isValidPath(_ path: String?) -> Bool {
+        guard let filePath = path, let standardizedPath = NSURL(fileURLWithPath: filePath).standardizingPath?.absoluteString else {
+            return false
+        }
+        let fileName = NSString(string: standardizedPath.string)
+        let lastSlash = fileName.range(of: "/", options: .backwards)
+        guard lastSlash.location != NSNotFound else {
+            return false
+        }
+        let resourceFilePrefixRange = NSRange(location: 0, length: lastSlash.location+1)
+        if fileName.substring(with: resourceFilePrefixRange).hasSuffix("Sources/Kitura/resources/") {
+            return  true
+        }
+        return false
     }
 
     private func getResourcePathBasedOnSourceLocation(for resource: String) -> String {
