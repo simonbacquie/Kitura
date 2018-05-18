@@ -139,8 +139,9 @@ extension StaticFileServer {
             }
             let fileManager = FileManager()
             var isDirectory = ObjCBool(false)
-
+Log.info("Request for file: \(filePath)")
             if fileManager.fileExists(atPath: filePath, isDirectory: &isDirectory) {
+Log.info("File exists: \(filePath)")
                 #if !os(Linux) || swift(>=4.1)
                     let isDirectoryBool = isDirectory.boolValue
                 #else
@@ -151,6 +152,7 @@ extension StaticFileServer {
                 return
             }
 
+Log.info("File doesn't exist: \(filePath)")
             if !tryToServeWithExtensions(filePath, response: response) {
                 do {
                     try response.send("Cannot GET \(requestPath)").status(.notFound).end()
@@ -261,6 +263,7 @@ extension StaticFileServer {
             guard let absoluteBasePath = NSURL(fileURLWithPath: servingFilesPath).standardizingPath?.absoluteString, let standardisedPath = NSURL(fileURLWithPath: filePath).standardizingPath?.absoluteString else {
                 return false
             }
+Log.info("Checking standardisedPath '\(standardisedPath)' hasPrefix '\(absoluteBasePath)'")
             return  standardisedPath.hasPrefix(absoluteBasePath)
         }
 
